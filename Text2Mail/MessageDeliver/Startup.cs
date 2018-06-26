@@ -25,8 +25,13 @@ namespace MessageDeliver
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddDbContext<MessageDataContext>(opt =>
-                opt.UseInMemoryDatabase("MessageDataList"));
+            //services.AddDbContext<MessageDataContext>(opt =>
+            //   opt.UseInMemoryDatabase("MessageDataList"));
+            services.AddDbContext<MessageDataContext>(opt
+                 => {
+                     //opt.UseSqlServer(Configuration.GetConnectionString("SqlServerLocal"));
+                     opt.UseMySql(Configuration.GetConnectionString("MySqlAzure"));
+                 });
             services.AddMvc();
            
         }
@@ -39,7 +44,7 @@ namespace MessageDeliver
             {
                 app.UseDeveloperExceptionPage();
             }
-
+            
             app.UseMvc();
         }
     }

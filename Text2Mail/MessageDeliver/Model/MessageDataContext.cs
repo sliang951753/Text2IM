@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace MessageDeliver.Model
 {
@@ -10,7 +11,7 @@ namespace MessageDeliver.Model
     {
         public MessageDataContext(DbContextOptions<MessageDataContext> options) : base(options)
         {
-
+            Database.EnsureCreated();
         }
 
         public DbSet<MessageData> MessageDataItems { get; set; }
