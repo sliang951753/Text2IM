@@ -68,12 +68,20 @@ namespace Text2Mail.Services
         {
             using (var httpClient = new HttpClient() { MaxResponseContentBufferSize = 256 * 1024 })
             {
-                var response = await httpClient.PostAsync(requestUri,
+
+                try
+                {
+                    var response = await httpClient.PostAsync(requestUri,
                     new StringContent(json, Encoding.UTF8, "application/json"));
 
-                if (response.IsSuccessStatusCode)
+                    if (response.IsSuccessStatusCode)
+                    {
+                        return true;
+                    }
+                }
+                catch (TaskCanceledException e)
                 {
-                    return true;
+                    
                 }
             }
 

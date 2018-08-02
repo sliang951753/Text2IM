@@ -12,10 +12,12 @@ using Text2Mail.Database.Tables;
 using System;
 using Android.Views;
 using Android.Runtime;
+using System.Collections.Generic;
+using Text2Mail.Model;
 
 namespace Text2Mail
 {
-    [Activity(Label = "Text2Mail", MainLauncher = true)]
+    [Activity(Label = "text2mail", MainLauncher = true)]
     public class MainActivity : Activity
     {
         public const int DATA_INSERTED_MESSAGE = 0x10;
@@ -145,7 +147,23 @@ namespace Text2Mail
                 Timestamp = DateTime.Now
             };
 
-            _messageViewerAdapter.InsertOne(dummy);
+            List<SmsData> smsDataList = new List<SmsData>();
+
+            var utcBase = new DateTime(1970, 1, 1);
+            var ts = new TimeSpan(DateTime.UtcNow.Subtract(utcBase).Ticks).TotalMilliseconds;
+
+            smsDataList.Add(new SmsData(Guid.Empty) { PhoneNumber = "+12345678", Body = "Dummy text message" , Timestamp = (long)ts });
+
+
+
+            Intent mailIntent = new Intent(this, typeof(MailPushService));
+            string json = JsonConvert.SerializeObject(smsDataList);
+
+            mailIntent.PutExtra("object", json);
+            this.StartService(mailIntent);
+
+
+            //_messageViewerAdapter.InsertOne(dummy);
         }
 
         protected override void OnDestroy()

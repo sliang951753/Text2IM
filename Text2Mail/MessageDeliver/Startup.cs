@@ -10,6 +10,12 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.EntityFrameworkCore;
 using MessageDeliver.Model;
+using MessageDeliver.Domain;
+using System.Net.WebSockets;
+using MessageDeliver.Extension;
+using MessageDeliver.Domain.Notification;
+using MessageDeliver.Service.Contract;
+using MessageDeliver.Service;
 
 namespace MessageDeliver
 {
@@ -32,8 +38,12 @@ namespace MessageDeliver
                      //opt.UseSqlServer(Configuration.GetConnectionString("SqlServerLocal"));
                      opt.UseMySql(Configuration.GetConnectionString("MySqlAzure"));
                  });
+
             services.AddMvc();
-           
+            services.AddNotificationManager();
+            services.AddTransient<IMessageDataRepository, MessageDataRepository>();
+            services.AddTransient<IMessageDataService, MessageDataService>();
+            services.AddTransient<IMessageNotificationService, MessageNotificationService>();
         }
 
 
@@ -46,6 +56,12 @@ namespace MessageDeliver
             }
             
             app.UseMvc();
+            app.UseWebSockets(new WebSocketOptions() {
+                KeepAliveInterval = TimeSpan.FromSeconds(120),
+                ReceiveBufferSize = 4 * 1024
+            });
+            app.MapWebsocket("/notification", app.ApplicationServices.GetService<IWSHandler>());
+            
         }
     }
 }

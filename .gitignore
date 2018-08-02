@@ -3,3 +3,7 @@
 ################################################################################
 
 /Text2Mail/MessageDeliver/bin
+/Text2Mail/MessageDeliver/obj
+/Text2Mail/Text2Mail/bin/Debug
+/Text2Mail/Text2Mail/obj
+/Text2Mail/.vs

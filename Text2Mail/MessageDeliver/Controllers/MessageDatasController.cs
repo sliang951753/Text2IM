@@ -6,6 +6,9 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MessageDeliver.Model;
+using MessageDeliver.Model.DTO;
+using MessageDeliver.Domain;
+using MessageDeliver.Service.Contract;
 
 namespace MessageDeliver.Controllers
 {
@@ -13,70 +16,45 @@ namespace MessageDeliver.Controllers
     [Route("api/MessageDatas")]
     public class MessageDatasController : Controller
     {
-        private readonly MessageDataContext _context;
+        private readonly IMessageDataService _messageDataService;
+        private readonly IMessageNotificationService _messageNotificationService;
 
-        public MessageDatasController(MessageDataContext context)
+        public MessageDatasController(IMessageDataService messageDataService, IMessageNotificationService messageNotificationService)
         {
-            _context = context;
+            _messageDataService = messageDataService;
+            _messageNotificationService = messageNotificationService;
         }
 
         // GET: api/MessageDatas
         [HttpGet]
-        public IEnumerable<MessageData> GetMessageDataItems()
+        public IEnumerable<MessageDataDto> GetMessageDataItems()
         {
-            return _context.MessageDataItems;
+            return _messageDataService.GetAll();
         }
         
-        [HttpGet("PublisherId/{publisherId}")]
-        public IEnumerable<MessageData> GetMessageDataItems([FromRoute] Guid publisherId, [FromQuery] bool forwarded)
+        [HttpGet("PublisherId/{publisherId:guid}")]
+        public IEnumerable<MessageDataDto> GetMessageDataItems([FromRoute] Guid publisherId, [FromQuery] bool forwarded)
         {
-            var messageData = _context.MessageDataItems.Where(m => m.PublisherId.Equals(publisherId) && (m.Forwarded == forwarded));
-
-            if (messageData == null)
-            {
-                return new List<MessageData>();
-            }
-
-            return messageData;
+            return _messageDataService.GetByPublisherId(publisherId, forwarded);
         }
 
-        [HttpGet("PublisherId/{publisherId}/{messageId}")]
-        public async Task<IActionResult> GetMessageDataItems([FromRoute] Guid publisherId, [FromRoute] Guid messageId)
+        [HttpGet("PublisherId/{publisherId:guid}/AfterDate/{afterDate:datetime}")]
+        public IEnumerable<MessageDataDto> GetMesssageDataItems([FromRoute] Guid publisherId, [FromRoute] DateTime afterDate)
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
+            return _messageDataService.GetLatestByPublisherId(publisherId, afterDate);
+        }
 
-            var messageData = await _context.MessageDataItems
-                .SingleOrDefaultAsync(
-                    m => m.PublisherId.Equals(publisherId) && m.MessageId.Equals(messageId));
-
-            if (messageData == null)
-            {
-                return NotFound();
-            }
-
-            return Ok(messageData);
+        [HttpGet("MessageId/{messageId:guid}")]
+        public MessageDataDto GetMessageDataItems([FromRoute] Guid messageId)
+        {
+            return _messageDataService.GetByMessageId(messageId);
         }
 
         // GET: api/MessageDatas/5
         [HttpGet("{id}")]
-        public async Task<IActionResult> GetMessageData([FromRoute] int id)
+        public MessageDataDto GetMessageData([FromRoute] int id)
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-
-            var messageData = await _context.MessageDataItems.SingleOrDefaultAsync(m => m.Id == id);
-
-            if (messageData == null)
-            {
-                return NotFound();
-            }
-
-            return Ok(messageData);
+            return _messageDataService.GetById(id);
         }
 
         // PUT: api/MessageDatas/5
@@ -93,11 +71,9 @@ namespace MessageDeliver.Controllers
                 return BadRequest();
             }
 
-            _context.Entry(messageData).State = EntityState.Modified;
-
             try
             {
-                await _context.SaveChangesAsync();
+                await Task.Factory.StartNew(() => _messageDataService.Update(messageData));
             }
             catch (DbUpdateConcurrencyException)
             {
@@ -123,10 +99,13 @@ namespace MessageDeliver.Controllers
                 return BadRequest(ModelState);
             }
 
-            _context.MessageDataItems.Add(messageData);
-            await _context.SaveChangesAsync();
+            await Task.Factory.StartNew(() =>{
+                _messageDataService.AddOne(messageData);
+                _messageNotificationService.NotifySubscribers(messageData);
+                }
+            );
 
-            return CreatedAtAction("GetMessageData", new { id = messageData.Id }, messageData);
+            return CreatedAtAction("GetMessageData", new { id = messageData.Id }, MessageDataDto.FromEntity(messageData));
         }
 
         // DELETE: api/MessageDatas/5
@@ -138,21 +117,20 @@ namespace MessageDeliver.Controllers
                 return BadRequest(ModelState);
             }
 
-            var messageData = await _context.MessageDataItems.SingleOrDefaultAsync(m => m.Id == id);
+            var messageData = _messageDataService.GetById(id);
             if (messageData == null)
             {
                 return NotFound();
             }
 
-            _context.MessageDataItems.Remove(messageData);
-            await _context.SaveChangesAsync();
+            await Task.Factory.StartNew(() => _messageDataService.Delete(id));
 
             return Ok(messageData);
         }
 
         private bool MessageDataExists(int id)
         {
-            return _context.MessageDataItems.Any(e => e.Id == id);
+            return _messageDataService.GetById(id) != null;
         }
     }
 }

@@ -21,7 +21,7 @@ using Text2Mail.Model;
 
 namespace Text2Mail
 {
-    [BroadcastReceiver(Enabled = true, Exported = true, Name = "Text2Mail.SMSReceiver", Label = "SMS Receiver")]
+    [BroadcastReceiver(Enabled = true, Exported = true)]
     [IntentFilter(new[] { Telephony.Sms.Intents.SmsReceivedAction })]
     class SmsReceiver : BroadcastReceiver
     {

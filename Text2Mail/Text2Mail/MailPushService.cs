@@ -122,10 +122,10 @@ namespace Text2Mail
          
                 await _deliverService.SendMessageData(messageDatas);
 
-                foreach (SmsData smsData in smsDataList)
-                {
-                    SendMail(_sender, smsData);
-                }
+                //foreach (SmsData smsData in smsDataList)
+                //{
+                //    SendMail(_sender, smsData);
+                //}
             }
 
             _handler.SendMessage(new Message());
